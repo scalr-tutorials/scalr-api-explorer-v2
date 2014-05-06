@@ -178,15 +178,15 @@
 
       $scope.makeApiCall = function () {
         // TODO -> Check required params!
-        var api_url = "https://api.scalr.net/";
+        var apiUrl = "https://api.scalr.net/";
 
         var hmac = new sjcl.misc.hmac($scope.apiCredentials.secretKey);
 
-        var local_time = new Date(); 
-        var utc_time = new Date(local_time.getUTCFullYear(), local_time.getUTCMonth(), local_time.getUTCDate(),
-                                local_time.getUTCHours(), local_time.getUTCMinutes(), local_time.getUTCSeconds());
+        var localTime = new Date(); 
+        var utcTime = new Date(localTime.getUTCFullYear(), localTime.getUTCMonth(), localTime.getUTCDate(),
+                                localTime.getUTCHours(), localTime.getUTCMinutes(), localTime.getUTCSeconds());
 
-        var timestamp = $filter("date")(utc_time, "yyyy-MM-dd HH:mm:ss");
+        var timestamp = $filter("date")(utcTime, "yyyy-MM-dd HH:mm:ss");
         var token = [$scope.apiCall.name, $scope.apiCredentials.keyId, timestamp].join(":");
 
         var signature = sjcl.codec.base64.fromBits(hmac.encrypt(token));
@@ -216,13 +216,11 @@
 
         // Add API Params
 
-        var proxyUrl = "/proxy/" + api_url;
-
         $scope.lastResponse = {"message": "API Call In Progress"};
 
         $http({
           "method": "GET",
-          "url": proxyUrl,
+          "url": apiUrl,
           "params": params
         }).
           success(function(data, status, headers, config) {
