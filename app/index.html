@@ -103,16 +103,14 @@
                 </div>
             </div>
             
-            <button class="btn btn-danger" ng-click="resetParams()">Reset form</button>
-            <button class="btn btn-success" ng-disabled="!apiCallForm.$valid || !apiCredentialsForm.$valid" ng-click="makeApiCall()">Call {{ apiCall.name }}</button>
+            <div class="form-group">
+              <div class="col-sm-offset-2 col-sm-10">
+                <button class="btn btn-danger" ng-click="resetParams()">Reset form</button>
+                <button class="btn btn-success" ng-disabled="!apiCallForm.$valid || !apiCredentialsForm.$valid" ng-click="makeApiCall()">Call {{ apiCall.name }}</button>
+              </div>
+            </div>
           </form> 
         </div>
-        
-        <!--
-        <pre>{{ apiParams|json }}</pre>
-        <pre>{{ apiCall|json }}</pre>
-        <pre>{{ apiCredentials|json }}</pre>
-        -->
 
         <div class="row">
           <h2>API Response</h2>
