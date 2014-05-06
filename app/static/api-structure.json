@@ -70,7 +70,7 @@
             {
                 "name": "Configuration",
                 "required": true,
-                "array": false
+                "array": true
             }
         ]
     },

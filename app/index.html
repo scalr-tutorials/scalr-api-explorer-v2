@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Scalr API Explorer</title>
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body ng-app="ScalrAPIExplorer">
+  <div class="container">
+    <div class="page-header">
+      <h1>Scalr API Explorer</h1>
+      <p>Use this app to explore the Scalr API</p>
+    </div>
+
+    <div class="container" ng-controller="APIRequestForm">
+
+        <div class="row">
+          <h2>API Structure</h2>
+          <p>Status: {{ status }}</p>
+          <button class="btn btn-default" ng-click="loadApiStructure()">Reload API Structure</button>
+        </div>
+
+
+        <div class="row">
+
+          <h2>API Credentials</h2>
+
+          <form name="apiCredentialsForm" class="form-horizontal" role="form">
+            <div class="form-group">
+              <label class="col-sm-2 control-label">API Key ID</label>
+              <div class="col-sm-10">
+                <input class="form-control" type="text" ng-model="apiCredentials.keyId" ng-required="true" />
+              </div>
+            </div>
+
+            <div  class="form-group">
+              <label class="col-sm-2 control-label">API Secret Key</label>
+              <div class="col-sm-10">
+                <input class="form-control" type="text" ng-model="apiCredentials.secretKey" ng-required="true" />
+              </div>
+            </div>
+
+            <div  class="form-group">
+              <label class="col-sm-2 control-label">API Environment ID</label>
+              <div class="col-sm-10">
+                <input class="form-control" type="text" ng-model="apiCredentials.envId" ng-required="false" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="col-sm-offset-2 col-sm-10">
+                <button class="btn btn-default" ng-click="saveApiCredentials()">Save API Credentials</button>
+              </div>
+            </div>
+          </form>
+
+        </div>
+
+        <div class="row">
+          <h2>API Call</h2>
+          <form class="form-horizontal">
+            <div class="form-group">
+              <label class="col-sm-2 control-label">API Call</label>
+              <div class="col-sm-10">
+                <select class="form-control" ng-model="apiCall" ng-change="resetParams()" ng-required="true" ng-options="value.name for value in apiCalls"></select>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="row">
+          <h2>API Parameters</h2>
+
+          <form name="apiCallForm" class="form-horizontal" novalidate>
+
+            <div class="form-group" ng-repeat="param in apiCall.params">
+                <label class="col-sm-2 control-label">{{param.name}}</label>
+
+                <div class="col-sm-10" ng-switch="param.array">
+                    <input ng-switch-when="false" class="form-control" type="text" ng-model="apiParams[param.name]" ng-required="param.required" />
+
+                    <div ng-switch-when="true">
+                      <div ng-repeat="i in range(getArrayParamLength(param.name)) track by $index">
+
+                        <div class="row form-inline">
+                          <label class="col-xs-2" class="control-label">Key</label>
+                          <input class="col-xs-4 form-control" type="text" ng-model="apiParams[param.name][$index].key"/>
+
+                          <label class="col-xs-2" class="control-label">Value</label>
+                          <input class="col-xs-4 form-control" type="text" ng-model="apiParams[param.name][$index].value"/>
+                        </div>
+
+                      </div>
+
+                      <div>
+                        <button class="btn btn-default" ng-click="addArrayParam(param.name)">Add parameter</button>
+                      </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-danger" ng-click="resetParams()">Reset form</button>
+            <button class="btn btn-success" ng-disabled="!apiCallForm.$valid || !apiCredentialsForm.$valid" ng-click="makeApiCall()">Call {{ apiCall.name }}</button>
+          </form> 
+        </div>
+        
+        <!--
+        <pre>{{ apiParams|json }}</pre>
+        <pre>{{ apiCall|json }}</pre>
+        <pre>{{ apiCredentials|json }}</pre>
+        -->
+
+        <div class="row">
+          <h2>API Response</h2>
+          <p ng-hide="lastResponse.message">Status: No API response yet</p>
+          <p ng-show="lastResponse.message">Status: {{ lastResponse.message }}</p>
+          <p ng-show="lastResponse.status">HTTP Status: <code>{{ lastResponse.status }}</code></p>
+
+          <pre ng-show="lastResponse.body">{{ lastResponse.body }}</pre>
+        </div>
+
+    </div>
+  </div>
+
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script>
+  <script src="/app/static/angular-local-storage.min.js"></script>
+  <script src="/app/static/sjcl.js"></script>
+  <script src="/app/static/vkbeautify.js"></script>
+
+  <script>
+  var app = angular.module('ScalrAPIExplorer', ["LocalStorageModule"]);
+
+  app.controller('APIRequestForm', ["$scope", "$http", "$filter", "localStorageService", function ($scope, $http, $filter, localStorageService) {
+      // Utilities
+      $scope.range = function(n) {
+        return new Array(n);
+      };
+
+      // Actual setup
+      var storedCredentials = localStorageService.get('apiCredentials');
+
+      if (storedCredentials) {
+        $scope.apiCredentials = angular.fromJson(storedCredentials);
+      } else {
+        $scope.apiCredentials = {};
+      }
+
+      $scope.apiCalls = []
+      $scope.apiCall = $scope.apiCalls[0];
+
+      $scope.apiParams = {};
+
+      $scope.lastResponse = {};
+
+      $scope.saveApiCredentials = function () {
+        localStorageService.set('apiCredentials', angular.toJson($scope.apiCredentials));
+      }
+
+      $scope.resetParams = function () {
+        $scope.apiParams = {};
+        console.log($scope.apiParams);
+      }
+
+      $scope.getArrayParamLength = function (paramName) {
+        if (angular.isUndefined($scope.apiParams[paramName]))
+          return 0;
+        return $scope.apiParams[paramName].length;
+      }
+
+      $scope.addArrayParam = function (paramName) {
+        if (angular.isUndefined($scope.apiParams[paramName]))
+          $scope.apiParams[paramName] = new Array();
+
+        $scope.apiParams[paramName].push({});
+      }
+
+      $scope.makeApiCall = function () {
+        // TODO -> Check required params!
+        var api_url = "https://api.scalr.net/";
+
+        var hmac = new sjcl.misc.hmac($scope.apiCredentials.secretKey);
+
+        var local_time = new Date(); 
+        var utc_time = new Date(local_time.getUTCFullYear(), local_time.getUTCMonth(), local_time.getUTCDate(),
+                                local_time.getUTCHours(), local_time.getUTCMinutes(), local_time.getUTCSeconds());
+
+        var timestamp = $filter("date")(utc_time, "yyyy-MM-dd HH:mm:ss");
+        var token = [$scope.apiCall.name, $scope.apiCredentials.keyId, timestamp].join(":");
+
+        var signature = sjcl.codec.base64.fromBits(hmac.encrypt(token));
+
+        var params = {
+          "Version": "2.3.0",
+          "AuthVersion": "3",
+          "Action": $scope.apiCall.name,
+          "Timestamp": timestamp,
+          "EnvID": $scope.apiCredentials.envId,
+          "KeyID": $scope.apiCredentials.keyId,
+          "Signature": signature
+        }
+
+        for (var key in $scope.apiParams) {
+          // TODO --> Arrays
+          var value = $scope.apiParams[key]
+          if (value instanceof Array) {
+            for (var i = 0; i < value.length; i++) {
+              var subParam = value[i];
+              params[key + "[" + encodeURIComponent(subParam.key) + "]"] = subParam.value;
+            }
+          } else {
+            params[key] = value;
+          }
+        }
+
+        // Add API Params
+
+        var proxyUrl = "/proxy/" + api_url;
+
+        $scope.lastResponse = {"message": "API Call In Progress"};
+
+        $http({
+          "method": "GET",
+          "url": proxyUrl,
+          "params": params
+        }).
+          success(function(data, status, headers, config) {
+            $scope.lastResponse.message = "API Call Succeeded";
+            $scope.lastResponse.status = status;
+            $scope.lastResponse.body = vkbeautify.xml(data);
+          }).
+          error(function(data, status, headers, config) {
+            $scope.lastResponse.message = "An error occured";
+            $scope.lastResponse.status = status;
+            $scope.lastResponse.body = data;
+          });
+      }
+
+      $scope.url = "/app/static/api-structure.json";
+
+      $scope.loadApiStructure = function () {
+        $scope.status = "Loading API Structure";
+        $http.get($scope.url).
+          success(function(data, status, headers, config) {
+            $scope.apiCalls = data;
+            $scope.apiCall = $scope.apiCalls[0];
+            $scope.status = "Ready";
+          }).
+          error(function(data, status, headers, config) {
+            $scope.status = "Failed to load API Structure";
+            // TODO: Add logging
+          });
+      }
+
+      // On load, request the list of API calls
+      $scope.loadApiStructure();
+  }]);
+  </script>
+</body>
+</html>
