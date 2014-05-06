@@ -12,6 +12,8 @@
     <div class="page-header">
       <h1>Scalr API Explorer</h1>
       <p>Use this app to explore the Scalr API</p>
+      <p>All requests are prepared locally, and proxied through a CORS proxy.</p>
+      <p>Your secret key never leaves your workstation.</p>
     </div>
 
     <div class="container" ng-controller="APIRequestForm">
@@ -51,7 +53,7 @@
 
             <div class="form-group">
               <div class="col-sm-offset-2 col-sm-10">
-                <button class="btn btn-default" ng-click="saveApiCredentials()">Save API Credentials</button>
+                <button class="btn btn-default" ng-click="saveApiCredentials()">Locally Save API Credentials</button>
               </div>
             </div>
           </form>
