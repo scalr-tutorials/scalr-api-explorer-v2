@@ -20,40 +20,48 @@
 
         <div class="row">
           <h2>API Structure</h2>
-          <p>Status: {{ status }}</p>
+          <p>Status: <span class="label label-{{ apiStructureStatus.label }}">{{ apiStructureStatus.status }}</span></p>
           <button class="btn btn-default" ng-click="loadApiStructure()">Reload API Structure</button>
         </div>
 
 
         <div class="row">
 
-          <h2>API Credentials</h2>
+          <h2>API Settings</h2>
 
-          <form name="apiCredentialsForm" class="form-horizontal" role="form">
+          <form name="apiSettingsForm" class="form-horizontal" role="form">
+            <div class="form-group">
+              <label class="col-sm-2 control-label">API Url</label>
+              <div class="col-sm-10">
+                <input ng-change="markApiSettingsModified()" class="form-control" type="text" ng-model="apiSettings.apiUrl" ng-required="true" />
+              </div>
+            </div>
+
             <div class="form-group">
               <label class="col-sm-2 control-label">API Key ID</label>
               <div class="col-sm-10">
-                <input class="form-control" type="text" ng-model="apiCredentials.keyId" ng-required="true" />
+                <input ng-change="markApiSettingsModified()" class="form-control" type="text" ng-model="apiSettings.keyId" ng-required="true" />
               </div>
             </div>
 
             <div  class="form-group">
               <label class="col-sm-2 control-label">API Secret Key</label>
               <div class="col-sm-10">
-                <input class="form-control" type="text" ng-model="apiCredentials.secretKey" ng-required="true" />
+                <input ng-change="markApiSettingsModified()" class="form-control" type="password" ng-model="apiSettings.secretKey" ng-required="true" />
               </div>
             </div>
 
             <div  class="form-group">
               <label class="col-sm-2 control-label">API Environment ID</label>
               <div class="col-sm-10">
-                <input class="form-control" type="text" ng-model="apiCredentials.envId" ng-required="false" />
+                <input ng-change="markApiSettingsModified()" class="form-control" type="text" ng-model="apiSettings.envId" ng-required="false" />
               </div>
             </div>
 
             <div class="form-group">
               <div class="col-sm-offset-2 col-sm-10">
-                <button class="btn btn-default" ng-click="saveApiCredentials()">Locally Save API Credentials</button>
+                <button class="btn btn-default" ng-disabled="!apiSettingsModified" ng-click="saveApiSettings()">Locally Save API Settings</button>
+                <button class="btn btn-danger" ng-disabled="!apiSettingsSaved" ng-click="clearApiSettings()">Clear Saved API Settings</button>
               </div>
             </div>
           </form>
@@ -105,8 +113,8 @@
             
             <div class="form-group">
               <div class="col-sm-offset-2 col-sm-10">
+                <button class="btn btn-success" ng-disabled="!apiCallForm.$valid || !apiSettingsForm.$valid" ng-click="makeApiCall()">Call {{ apiCall.name }}</button>
                 <button class="btn btn-danger" ng-click="resetParams()">Reset form</button>
-                <button class="btn btn-success" ng-disabled="!apiCallForm.$valid || !apiCredentialsForm.$valid" ng-click="makeApiCall()">Call {{ apiCall.name }}</button>
               </div>
             </div>
           </form> 
@@ -125,11 +133,12 @@
   </div>
 
   <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script>
-  <script src="/app/static/angular-local-storage.min.js"></script>
-  <script src="/app/static/sjcl.js"></script>
-  <script src="/app/static/vkbeautify.js"></script>
+  <script src="/static/angular-local-storage.min.js"></script>
+  <script src="/static/sjcl.js"></script>
+  <script src="/static/vkbeautify.js"></script>
 
   <script>
+
   var app = angular.module('ScalrAPIExplorer', ["LocalStorageModule"]);
 
   app.controller('APIRequestForm', ["$scope", "$http", "$filter", "localStorageService", function ($scope, $http, $filter, localStorageService) {
@@ -138,14 +147,40 @@
         return new Array(n);
       };
 
-      // Actual setup
-      var storedCredentials = localStorageService.get('apiCredentials');
+      // API Settings handling
 
-      if (storedCredentials) {
-        $scope.apiCredentials = angular.fromJson(storedCredentials);
-      } else {
-        $scope.apiCredentials = {};
+      $scope.apiSettingsSaved = null;
+      $scope.apiSettingsModified = null;
+
+      $scope.loadApiSettings = function () {
+        var storedCredentials = localStorageService.get('apiSettings');
+        if (storedCredentials) {
+          $scope.apiSettings = angular.fromJson(storedCredentials);
+          $scope.apiSettingsSaved = true;
+        } else {
+          $scope.apiSettings = {"apiUrl": "https://api.scalr.net/"}; // Default
+          $scope.apiSettingsSaved = false;
+        }
       }
+
+      $scope.saveApiSettings = function () {
+        localStorageService.set('apiSettings', angular.toJson($scope.apiSettings));
+
+        $scope.apiSettingsSaved = true;
+        $scope.apiSettingsModified = false;
+      }
+
+      $scope.clearApiSettings = function () {
+        localStorageService.set('apiSettings', null);
+
+        $scope.apiSettingsSaved = false;
+      }
+
+      $scope.markApiSettingsModified = function () {
+        $scope.apiSettingsModified = true;
+      }
+
+      // API Call handling
 
       $scope.apiCalls = []
       $scope.apiCall = $scope.apiCalls[0];
@@ -154,9 +189,6 @@
 
       $scope.lastResponse = {};
 
-      $scope.saveApiCredentials = function () {
-        localStorageService.set('apiCredentials', angular.toJson($scope.apiCredentials));
-      }
 
       $scope.resetParams = function () {
         $scope.apiParams = {};
@@ -178,16 +210,16 @@
 
       $scope.makeApiCall = function () {
         // TODO -> Check required params!
-        var apiUrl = "https://api.scalr.net/";
+;
 
-        var hmac = new sjcl.misc.hmac($scope.apiCredentials.secretKey);
+        var hmac = new sjcl.misc.hmac($scope.apiSettings.secretKey);
 
         var localTime = new Date(); 
         var utcTime = new Date(localTime.getUTCFullYear(), localTime.getUTCMonth(), localTime.getUTCDate(),
                                 localTime.getUTCHours(), localTime.getUTCMinutes(), localTime.getUTCSeconds());
 
         var timestamp = $filter("date")(utcTime, "yyyy-MM-dd HH:mm:ss");
-        var token = [$scope.apiCall.name, $scope.apiCredentials.keyId, timestamp].join(":");
+        var token = [$scope.apiCall.name, $scope.apiSettings.keyId, timestamp].join(":");
 
         var signature = sjcl.codec.base64.fromBits(hmac.encrypt(token));
 
@@ -196,8 +228,8 @@
           "AuthVersion": "3",
           "Action": $scope.apiCall.name,
           "Timestamp": timestamp,
-          "EnvID": $scope.apiCredentials.envId,
-          "KeyID": $scope.apiCredentials.keyId,
+          "EnvID": $scope.apiSettings.envId,
+          "KeyID": $scope.apiSettings.keyId,
           "Signature": signature
         }
 
@@ -214,13 +246,11 @@
           }
         }
 
-        // Add API Params
-
         $scope.lastResponse = {"message": "API Call In Progress"};
 
         $http({
           "method": "GET",
-          "url": apiUrl,
+          "url": $scope.apiSettings.apiUrl,
           "params": params
         }).
           success(function(data, status, headers, config) {
@@ -235,23 +265,32 @@
           });
       }
 
-      $scope.url = "/app/static/api-structure.json";
+      $scope.apiSturctureUrl = "/static/api-structure.json";
+      $scope.apiStructureStatus = {
+        "status": "Starting",
+        "label": "default"
+      };
 
       $scope.loadApiStructure = function () {
-        $scope.status = "Loading API Structure";
-        $http.get($scope.url).
+        $scope.apiStructureStatus.status = "Loading";
+        $scope.apiStructureStatus.label = "warning";
+
+        $http.get($scope.apiSturctureUrl).
           success(function(data, status, headers, config) {
             $scope.apiCalls = data;
             $scope.apiCall = $scope.apiCalls[0];
-            $scope.status = "Ready";
+
+            $scope.apiStructureStatus.status = "Ready";
+            $scope.apiStructureStatus.label = "success";
           }).
           error(function(data, status, headers, config) {
-            $scope.status = "Failed to load API Structure";
-            // TODO: Add logging
+            $scope.apiStructureStatus.status = "Error";
+            $scope.apiStructureStatus.label = "danger";
           });
       }
 
-      // On load, request the list of API calls
+      // Initialization. Load API settings from local storage, and load API structure
+      $scope.loadApiSettings();
       $scope.loadApiStructure();
   }]);
   </script>
