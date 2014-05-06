@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Scalr API Explorer</title>
+
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script>
+
+  
+</head>
+<body ng-app="ScalrAPIExplorer">
+  <div ng-controller="APIRequestForm">
+
+      <p>Status: {{ status }}</p>
+
+      <form class="form-horizontal">
+        <div  class="control-group">
+          <label class="control-label">API Key ID</label>
+          <input type="text" ng-model="apiCredentials.keyId" ng-required="true" />
+        </div>
+
+        <div  class="control-group">
+          <label class="control-label">API Secret Key</label>
+          <input type="text" ng-model="apiCredentials.secretKey" ng-required="true" />
+        </div>
+
+        <div  class="control-group">
+          <label class="control-label">API Environment ID</label>
+          <input type="text" ng-model="apiCredentials.envId" ng-required="false" />
+        </div>
+      </form>
+
+      <form class="form-horizontal">
+        <div  class="control-group">
+          <div class="controls">
+            <label class="control-label">API Call</label>
+            <select ng-model="apiCall" ng-change="resetParams()" ng-required="true" ng-options="value.name for value in apiCalls"></select>
+          </div>
+        </div>
+      </form>
+
+      <form class="form-horizontal" novalidate>
+          <div class="control-group" ng-repeat="param in apiCall.params">
+              <label class="control-label">{{param.name}}</label>
+
+              <div class="controls" ng-switch="param.array">
+                  <input ng-switch-when="false" type="text" ng-model="apiParams[param.name]" ng-required="param.required" />
+
+                  <div ng-switch-when="true">
+                    <div ng-repeat="i in range(getArrayParamLength(param.name)) track by $index">
+                      <label class="control-label">Key</label>
+                      <input type="text" ng-model="apiParams[param.name][$index].key"/>
+
+                      <label class="control-label">Value</label>
+                      <input type="text" ng-model="apiParams[param.name][$index].value"/>
+                    </div>
+
+                    <button class="btn" ng-click="addArrayParam(param.name)">Add parameter</button>
+                  </div>
+              </div>
+          </div>
+          
+          <button class="btn" ng-click="resetParams()">Reset form</button>
+          <button class="btn" ng-click="makeApiCall()">Call {{apiCall.name}}</button>
+      </form> 
+      
+      <pre>{{ apiParams|json }}</pre>
+      <pre>{{ apiCall|json }}</pre>
+
+  </div>
+
+  <script>
+  var app = angular.module('ScalrAPIExplorer', []);
+
+  app.controller('APIRequestForm', function ($scope, $http) {
+      // Utilities
+      $scope.range = function(n) {
+        return new Array(n);
+      };
+
+      // Actual setup
+      $scope.apiCredentials = {};
+
+      $scope.apiCalls = []
+      $scope.apiCall = $scope.apiCalls[0];
+
+      $scope.apiParams = {};
+
+      $scope.resetParams = function () {
+        $scope.apiParams = {};
+        console.log($scope.apiParams);
+      }
+
+      $scope.getArrayParamLength = function (paramName) {
+        if (angular.isUndefined($scope.apiParams[paramName]))
+          return 0;
+        return $scope.apiParams[paramName].length;
+      }
+
+      $scope.addArrayParam = function (paramName) {
+        if (angular.isUndefined($scope.apiParams[paramName]))
+          $scope.apiParams[paramName] = new Array();
+
+        $scope.apiParams[paramName].push({});
+      }
+
+      $scope.makeApiCall = function () {
+      }
+
+      // On load, request the list of API calls
+      console.log("Loading API structure definition");
+
+      $scope.status = "Loading API Structure";
+
+      $scope.url = "/api-structure.json";
+      $http.get($scope.url).
+        success(function(data, status, headers, config) {
+          $scope.apiCalls = data;
+          $scope.apiCall = $scope.apiCalls[0];
+          $scope.status = "Ready";
+        }).
+        error(function(data, status, headers, config) {
+          $scope.status = "Failed to load API Structure";
+          // TODO: Add logging
+        });
+  });
+  </script>
+</body>
+</html>
