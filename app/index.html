@@ -12,8 +12,7 @@
     <div class="page-header">
       <h1>Scalr API Explorer</h1>
       <p>Use this app to explore the Scalr API</p>
-      <p>All requests are prepared locally, and proxied through a CORS proxy.</p>
-      <p>Your secret key never leaves your workstation.</p>
+      <p>This app is exclusively client-side. All requests are directly sent from your workstation to the Scalr API.</p>
     </div>
 
     <div class="container" ng-controller="APIRequestForm">
@@ -31,7 +30,7 @@
 
           <form name="apiSettingsForm" class="form-horizontal" role="form">
             <div class="form-group">
-              <label class="col-sm-2 control-label">API Url</label>
+              <label class="col-sm-2 control-label">API URL</label>
               <div class="col-sm-10">
                 <input ng-change="markApiSettingsModified()" class="form-control" type="text" ng-model="apiSettings.apiUrl" ng-required="true" />
               </div>
