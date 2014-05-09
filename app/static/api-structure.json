@@ -40,6 +40,26 @@
         ]
     },
     {
+        "name": "FarmUpdateRole",
+        "params": [
+            {
+                "name": "FarmRoleID",
+                "required": true,
+                "array": false
+            },
+            {
+                "name": "Alias",
+                "required": false,
+                "array": false
+            },
+            {
+                "name": "Configuration",
+                "required": false,
+                "array": true
+            }
+        ]
+    },
+    {
         "name": "FarmAddRole",
         "params": [
             {
@@ -69,7 +89,7 @@
             },
             {
                 "name": "Configuration",
-                "required": true,
+                "required": false,
                 "array": true
             }
         ]
@@ -109,6 +129,11 @@
             },
             {
                 "name": "Description",
+                "required": false,
+                "array": false
+            },
+            {
+                "name": "ProjectID",
                 "required": false,
                 "array": false
             }
