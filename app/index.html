@@ -74,7 +74,7 @@
             <div class="form-group">
               <label class="col-sm-2 control-label">API Call</label>
               <div class="col-sm-10">
-                <select class="form-control" ng-model="apiCall" ng-change="resetParams()" ng-required="true" ng-options="value.name for value in apiCalls"></select>
+                <select class="form-control" ng-model="apiCall" ng-required="true" ng-options="value.name for value in apiCalls"></select>
               </div>
             </div>
           </form>
@@ -179,6 +179,10 @@
 
       $scope.apiCalls = []
       $scope.apiCall = $scope.apiCalls[0];
+
+      $scope.$watch('apiCall', function (newApiCall, oldApiCall) {
+        $scope.resetParams();
+      });
 
       $scope.apiParams = {};
 
