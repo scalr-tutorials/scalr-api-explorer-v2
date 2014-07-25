@@ -21,7 +21,6 @@
     </div>
 
     <div class="container" ng-controller="APIRequestForm">
-
         <div class="row">
           <h2>API Structure</h2>
           <p>Status: <span class="label label-{{ apiStructureStatus.label }}">{{ apiStructureStatus.status }}</span></p>
@@ -29,15 +28,32 @@
         </div>
 
 
+
         <div class="row">
 
           <h2>API Settings</h2>
+
+          <div class="alert alert-warning" role="alert" ng-show="isHttps && apiSettingsForm.apiUrl.$valid && apiSettings.apiUrl.indexOf('https') != 0">
+            <p>
+              <strong><span class="glyphicon glyphicon-warning-sign"></span> Heads up!</strong>
+              You are currently accessing the API Explorer over HTTPS, but your API endpoint is served over HTTP.
+              This may trigger a <a href="https://developer.mozilla.org/en-US/docs/Security/MixedContent">mixed content alert</a> in your browser.
+            </p>
+            <p>
+              <strong>Don't panic, the API Explorer can still work,</strong> provided you allow mixed content first.
+            </p>
+            <p>
+              To do so, make a "Hello" API Call. Your browser will show a warning; it's a shield icon next to the URL bar.
+              Click it, and allow mixed content. Then, retry your request. You should only have to do this once.
+            </p>
+
+          </div>
 
           <form name="apiSettingsForm" class="form-horizontal" role="form" novalidate>
             <div class="form-group" ng-class="{'has-error': apiSettingsForm.apiUrl.$invalid}">
               <label class="col-sm-2 control-label">API URL</label>
               <div class="col-sm-10">
-                <input class="form-control" type="text" name="apiUrl" ng-model="apiSettings.apiUrl" ng-required="true" />
+                <input class="form-control" type="url" name="apiUrl" ng-model="apiSettings.apiUrl" ng-required="true" />
               </div>
             </div>
 
@@ -178,13 +194,14 @@
 
   var app = angular.module('ScalrAPIExplorer', ["LocalStorageModule", "ui.bootstrap"]);
 
-  app.controller('APIRequestForm', ["$scope", "$http", "$filter", "localStorageService", function ($scope, $http, $filter, localStorageService) {
+  app.controller('APIRequestForm', ["$scope", "$location", "$http", "$filter", "localStorageService", function ($scope, $location, $http, $filter, localStorageService) {
       // Utilities
       $scope.range = function(n) {
         return new Array(n);
       };
 
       $scope.equals = angular.equals;
+      $scope.isHttps = $location.protocol() === "https";
 
       // UI Handling
       $scope.tabs = {
