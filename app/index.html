@@ -216,30 +216,35 @@
         $scope.apiParams[paramName].push({});
       }
 
-      $scope.makeApiCall = function () {
-        // TODO -> Check required params!
-;
 
-        var hmac = new sjcl.misc.hmac($scope.apiSettings.secretKey);
-
+      getAuthParams = function () {
         var localTime = new Date();
         var utcTime = new Date(localTime.getUTCFullYear(), localTime.getUTCMonth(), localTime.getUTCDate(),
                                 localTime.getUTCHours(), localTime.getUTCMinutes(), localTime.getUTCSeconds());
-
         var timestamp = $filter("date")(utcTime, "yyyy-MM-dd HH:mm:ss");
-        var token = [$scope.apiCall.name, $scope.apiSettings.keyId, timestamp].join(":");
 
+        var token = [$scope.apiCall.name, $scope.apiSettings.keyId, timestamp].join(":");
+        var hmac = new sjcl.misc.hmac($scope.apiSettings.secretKey);
         var signature = sjcl.codec.base64.fromBits(hmac.encrypt(token));
+
+        return {
+          "Timestamp": timestamp,
+          "KeyID": $scope.apiSettings.keyId,
+          "Signature": signature
+        }
+      }
+
+      $scope.makeApiCall = function () {
+        // TODO -> Check required params!
 
         var params = {
           "Version": "2.3.0",
           "AuthVersion": "3",
           "Action": $scope.apiCall.name,
-          "Timestamp": timestamp,
-          "EnvID": $scope.apiSettings.envId,
-          "KeyID": $scope.apiSettings.keyId,
-          "Signature": signature
+          "EnvID": $scope.apiSettings.envId
         }
+
+        angular.extend(params, getAuthParams());
 
         for (var key in $scope.apiParams) {
           // TODO --> Arrays
