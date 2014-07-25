@@ -34,34 +34,27 @@
           <h2>API Settings</h2>
 
           <form name="apiSettingsForm" class="form-horizontal" role="form" novalidate>
-            <div class="form-group">
+            <div class="form-group" ng-class="{'has-error': apiSettingsForm.apiUrl.$invalid}">
               <label class="col-sm-2 control-label">API URL</label>
               <div class="col-sm-10">
-                <input class="form-control" type="text" ng-model="apiSettings.apiUrl" ng-required="true" />
-              </div>
-            </div>
-
-            <div  class="form-group">
-              <label class="col-sm-2 control-label">API Environment ID</label>
-              <div class="col-sm-10">
-                <input class="form-control" type="text" ng-model="apiSettings.envId" ng-required="false" />
+                <input class="form-control" type="text" name="apiUrl" ng-model="apiSettings.apiUrl" ng-required="true" />
               </div>
             </div>
 
             <tabset justified="true">
 
               <tab heading="Use API Key Auth" active="tabs.key.active">
-                <div class="form-group">
+                <div class="form-group" ng-class="{'has-error': apiSettingsForm.keyId.$invalid}">
                   <label class="col-sm-2 control-label">API Key ID</label>
                   <div class="col-sm-10">
-                    <input class="form-control" type="text" ng-model="apiSettings.keyId" ng-required="true" />
+                    <input class="form-control" type="text" name="keyId" ng-model="apiSettings.keyId" ng-required="equals(apiSettings.authType, 'key')" />
                   </div>
                 </div>
 
                 <div  class="form-group">
                   <label class="col-sm-2 control-label">API Secret Key</label>
-                  <div class="col-sm-10">
-                    <input class="form-control" type="password" ng-model="apiSettings.secretKey" ng-required="true" />
+                  <div class="col-sm-10" ng-class="{'has-error': apiSettingsForm.secretKey.$invalid}">
+                    <input class="form-control" type="password" name="secretKey" ng-model="apiSettings.secretKey" ng-required="equals(apiSettings.authType, 'key')" />
                   </div>
                 </div>
               </tab>
@@ -69,20 +62,27 @@
               <tab heading="Use LDAP Auth" active="tabs.ldap.active">
                 <div  class="form-group">
                   <label class="col-sm-2 control-label">LDAP Username</label>
-                  <div class="col-sm-10">
-                    <input class="form-control" type="text" ng-model="apiSettings.ldapUsername" ng-required="false" />
+                  <div class="col-sm-10" ng-class="{'has-error': apiSettingsForm.ldapUsername.$invalid}">
+                    <input class="form-control" type="text" name="ldapUsername" ng-model="apiSettings.ldapUsername" ng-required="equals(apiSettings.authType, 'ldap')" />
                   </div>
                 </div>
 
                 <div  class="form-group">
                   <label class="col-sm-2 control-label">LDAP Password</label>
-                  <div class="col-sm-10">
-                    <input class="form-control" type="text" ng-model="apiSettings.ldapPassword" ng-required="false" />
+                  <div class="col-sm-10" ng-class="{'has-error': apiSettingsForm.ldapPassword.$invalid}">
+                    <input class="form-control" type="password" name="ldapPassword" ng-model="apiSettings.ldapPassword" ng-required="equals(apiSettings.authType, 'ldap')" />
                   </div>
                 </div>
               </tab>
 
             </tabset>
+
+            <div  class="form-group">
+              <label class="col-sm-2 control-label">API Environment ID</label>
+              <div class="col-sm-10" ng-class="{'has-error': apiSettingsForm.envId.$invalid}">
+                <input class="form-control" type="text" name="envId" ng-model="apiSettings.envId" ng-required="equals(apiSettings.authType, 'ldap')" />
+              </div>
+            </div>
 
             <div class="form-group">
               <div class="col-sm-offset-2 col-sm-10">
@@ -264,23 +264,49 @@
       }
 
 
-      getAuthParams = function () {
-        var localTime = new Date();
-        var utcTime = new Date(localTime.getUTCFullYear(), localTime.getUTCMonth(), localTime.getUTCDate(),
-                                localTime.getUTCHours(), localTime.getUTCMinutes(), localTime.getUTCSeconds());
-        var timestamp = $filter("date")(utcTime, "yyyy-MM-dd HH:mm:ss");
-
+      var getKeyAuthParams = function (timestamp) {
         var token = [$scope.apiCall.name, $scope.apiSettings.keyId, timestamp].join(":");
         var hmac = new sjcl.misc.hmac($scope.apiSettings.secretKey);
         var signature = sjcl.codec.base64.fromBits(hmac.encrypt(token));
 
         return {
-          "AuthMode": "key",
           "AuthVersion": "3",
-          "Timestamp": timestamp,
           "KeyID": $scope.apiSettings.keyId,
           "Signature": signature
         }
+      }
+
+      var getLDAPAuthParams = function (timestamp) {
+        return {
+          "AuthType": $scope.apiSettings.authType,
+          "Login": $scope.apiSettings.ldapUsername,
+          "Password": $scope.apiSettings.ldapPassword
+        }
+      }
+
+      var authFunctions = {
+        "key": getKeyAuthParams,
+        "ldap": getLDAPAuthParams
+      }
+
+      var getAuthParams = function () {
+        var localTime = new Date();
+        var utcTime = new Date(localTime.getUTCFullYear(), localTime.getUTCMonth(), localTime.getUTCDate(),
+                                localTime.getUTCHours(), localTime.getUTCMinutes(), localTime.getUTCSeconds());
+        var timestamp = $filter("date")(utcTime, "yyyy-MM-dd HH:mm:ss");
+
+        var authParams = {
+          "Timestamp": timestamp
+        }
+
+        var authFunction = authFunctions[$scope.apiSettings.authType];
+        if (authFunction) {
+          angular.extend(authParams, authFunction(timestamp));
+        } else {
+          console.log("Warning: no auth function found for auth type: %s", $scope.apiSettings.authType);
+        }
+
+        return authParams;
       }
 
       $scope.makeApiCall = function () {
@@ -288,8 +314,11 @@
 
         var params = {
           "Version": "2.3.0",
-          "Action": $scope.apiCall.name,
-          "EnvID": $scope.apiSettings.envId
+          "Action": $scope.apiCall.name
+        }
+
+        if ($scope.apiSettings.envId !== '') {
+          params["EnvID"] = $scope.apiSettings.envId;
         }
 
         angular.extend(params, getAuthParams());
