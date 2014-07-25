@@ -203,6 +203,9 @@
         $scope.storedApiSettings = storedApiSettings === null ? $scope.defaultApiSettings : storedApiSettings;
         $scope.apiSettings = angular.copy($scope.storedApiSettings);
 
+        // Backwards compatibility (user with no authType)
+        if (angular.isUndefined($scope.apiSettings.authType)) $scope.apiSettings.authType = 'key';
+
         // Tabs are initialized only when loading
         if ($scope.apiSettings.authType === 'key') $scope.tabs.key.active = true;
         if ($scope.apiSettings.authType === 'ldap') $scope.tabs.ldap.active = true;
@@ -303,7 +306,7 @@
         if (authFunction) {
           angular.extend(authParams, authFunction(timestamp));
         } else {
-          console.log("Warning: no auth function found for auth type: %s", $scope.apiSettings.authType);
+          console.log("Warning: no auth function found for auth type: '%s'", $scope.apiSettings.authType);
         }
 
         return authParams;
