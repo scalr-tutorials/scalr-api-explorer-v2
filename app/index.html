@@ -6,6 +6,10 @@
   <title>Scalr API Explorer</title>
   <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
   <link type="image/x-icon" href="/static/favicon.ico" rel="shortcut icon" />
+  <style>
+    .nav, .pagination, .carousel, .panel-title a { cursor: pointer; }
+    .nav.nav-tabs { padding-bottom: 15px; }
+  </style>
 </head>
 
 <body ng-app="ScalrAPIExplorer">
@@ -37,26 +41,48 @@
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="col-sm-2 control-label">API Key ID</label>
-              <div class="col-sm-10">
-                <input class="form-control" type="text" ng-model="apiSettings.keyId" ng-required="true" />
-              </div>
-            </div>
-
-            <div  class="form-group">
-              <label class="col-sm-2 control-label">API Secret Key</label>
-              <div class="col-sm-10">
-                <input class="form-control" type="password" ng-model="apiSettings.secretKey" ng-required="true" />
-              </div>
-            </div>
-
             <div  class="form-group">
               <label class="col-sm-2 control-label">API Environment ID</label>
               <div class="col-sm-10">
                 <input class="form-control" type="text" ng-model="apiSettings.envId" ng-required="false" />
               </div>
             </div>
+
+            <tabset justified="true">
+
+              <tab heading="Use API Key Auth" active="tabs.key.active">
+                <div class="form-group">
+                  <label class="col-sm-2 control-label">API Key ID</label>
+                  <div class="col-sm-10">
+                    <input class="form-control" type="text" ng-model="apiSettings.keyId" ng-required="true" />
+                  </div>
+                </div>
+
+                <div  class="form-group">
+                  <label class="col-sm-2 control-label">API Secret Key</label>
+                  <div class="col-sm-10">
+                    <input class="form-control" type="password" ng-model="apiSettings.secretKey" ng-required="true" />
+                  </div>
+                </div>
+              </tab>
+
+              <tab heading="Use LDAP Auth" active="tabs.ldap.active">
+                <div  class="form-group">
+                  <label class="col-sm-2 control-label">LDAP Username</label>
+                  <div class="col-sm-10">
+                    <input class="form-control" type="text" ng-model="apiSettings.ldapUsername" ng-required="false" />
+                  </div>
+                </div>
+
+                <div  class="form-group">
+                  <label class="col-sm-2 control-label">LDAP Password</label>
+                  <div class="col-sm-10">
+                    <input class="form-control" type="text" ng-model="apiSettings.ldapPassword" ng-required="false" />
+                  </div>
+                </div>
+              </tab>
+
+            </tabset>
 
             <div class="form-group">
               <div class="col-sm-offset-2 col-sm-10">
@@ -144,12 +170,13 @@
 
   <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script>
   <script src="/static/angular-local-storage.min.js"></script>
+  <script src="/static/ui-bootstrap-tpls-0.11.0.min.js"></script>
   <script src="/static/sjcl.js"></script>
   <script src="/static/vkbeautify.js"></script>
 
   <script>
 
-  var app = angular.module('ScalrAPIExplorer', ["LocalStorageModule"]);
+  var app = angular.module('ScalrAPIExplorer', ["LocalStorageModule", "ui.bootstrap"]);
 
   app.controller('APIRequestForm', ["$scope", "$http", "$filter", "localStorageService", function ($scope, $http, $filter, localStorageService) {
       // Utilities
@@ -158,6 +185,12 @@
       };
 
       $scope.equals = angular.equals;
+
+      // UI Handling
+      $scope.tabs = {
+        "key":  { "active": true}, // Default tab
+        "ldap": {"active": false}
+      }
 
       // API Settings handling
       $scope.defaultApiSettings = {"apiUrl": "https://api.scalr.net/"};
@@ -169,6 +202,10 @@
         var storedApiSettings = angular.fromJson(localStorageService.get('apiSettings'));
         $scope.storedApiSettings = storedApiSettings === null ? $scope.defaultApiSettings : storedApiSettings;
         $scope.apiSettings = angular.copy($scope.storedApiSettings);
+
+        // Tabs are initialized only when loading
+        if ($scope.apiSettings.authType === 'key') $scope.tabs.key.active = true;
+        if ($scope.apiSettings.authType === 'ldap') $scope.tabs.ldap.active = true;
       }
 
       $scope.saveApiSettings = function () {
@@ -182,6 +219,16 @@
       $scope.$watch('storedApiSettings', function (newSettings, oldSettings) {
         if (newSettings === oldSettings) return;  // Same object --> initialization.
         localStorageService.set('apiSettings', angular.toJson(newSettings));
+      }, true);
+
+      $scope.$watch('tabs', function (newTabConfig, oldTabConfig) {
+          if (newTabConfig === oldTabConfig) return;  // See above
+          var authType;
+
+          if (newTabConfig.key.active) authType = "key";
+          if (newTabConfig.ldap.active) authType = "ldap";
+
+          $scope.apiSettings.authType = authType;
       }, true);
 
 
@@ -228,6 +275,8 @@
         var signature = sjcl.codec.base64.fromBits(hmac.encrypt(token));
 
         return {
+          "AuthMode": "key",
+          "AuthVersion": "3",
           "Timestamp": timestamp,
           "KeyID": $scope.apiSettings.keyId,
           "Signature": signature
@@ -239,7 +288,6 @@
 
         var params = {
           "Version": "2.3.0",
-          "AuthVersion": "3",
           "Action": $scope.apiCall.name,
           "EnvID": $scope.apiSettings.envId
         }
