@@ -128,10 +128,16 @@
         <div class="row">
           <h2>API Parameters</h2>
 
+
           <form name="apiParametersForm" class="form-horizontal" novalidate>
 
-            <div ng-show="(apiCall && !apiCall.params.length)">
-              <p>This API Call takes no parameters</p>
+            <div ng-show="apiCall">
+              <p ng-show="apiCall.params.length">
+                Need Help? Visit the
+                <a target="_blank" href="{{ getDocumentationURL(apiCall) }}">{{ apiCall.name }}</a>
+                documentation (opens in a new tab).
+              </p>
+              <p ng-hide="apiCall.params.length">This API Call takes no parameters</p>
             </div>
 
             <div class="form-group" ng-repeat="param in apiCall.params">
@@ -195,6 +201,9 @@
   var app = angular.module('ScalrAPIExplorer', ["LocalStorageModule", "ui.bootstrap"]);
 
   app.controller('APIRequestForm', ["$scope", "$location", "$http", "$filter", "localStorageService", function ($scope, $location, $http, $filter, localStorageService) {
+      // Constants
+      var documentationRootURL = "https://scalr-wiki.atlassian.net/wiki/display/docs";
+
       // Utilities
       $scope.range = function(n) {
         return new Array(n);
@@ -202,6 +211,10 @@
 
       $scope.equals = angular.equals;
       $scope.isHttps = $location.protocol() === "https";
+
+      $scope.getDocumentationURL = function (apiCall) {
+        return [documentationRootURL, apiCall.name].join("/");
+      };
 
       // UI Handling
       $scope.tabs = {
