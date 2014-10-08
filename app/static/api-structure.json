@@ -136,6 +136,11 @@
                 "name": "ProjectID",
                 "required": false,
                 "array": false
+            },
+            {
+                "name": "Configuration",
+                "required": false,
+                "array": true
             }
         ]
     },
@@ -211,9 +216,7 @@
     },
     {
         "name": "EnvironmentsList",
-        "params": [
-
-        ]
+        "params": []
     },
     {
         "name": "ServerGetExtendedInformation",
@@ -287,9 +290,7 @@
     },
     {
         "name": "DmSourcesList",
-        "params": [
-
-        ]
+        "params": []
     },
     {
         "name": "DmSourceCreate",
@@ -343,9 +344,7 @@
     },
     {
         "name": "DmApplicationsList",
-        "params": [
-
-        ]
+        "params": []
     },
     {
         "name": "DmDeploymentTasksList",
@@ -419,9 +418,7 @@
     },
     {
         "name": "FarmsList",
-        "params": [
-
-        ]
+        "params": []
     },
     {
         "name": "ApacheVhostCreate",
@@ -465,15 +462,11 @@
     },
     {
         "name": "ApacheVhostsList",
-        "params": [
-
-        ]
+        "params": []
     },
     {
         "name": "DNSZonesList",
-        "params": [
-
-        ]
+        "params": []
     },
     {
         "name": "DNSZoneRecordAdd",
@@ -752,15 +745,11 @@
     },
     {
         "name": "ScriptsList",
-        "params": [
-
-        ]
+        "params": []
     },
     {
         "name": "Hello",
-        "params": [
-
-        ]
+        "params": []
     },
     {
         "name": "StatisticsGetGraphURL",
